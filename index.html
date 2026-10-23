@@ -334,5 +334,42 @@ async function initializeLiff() {
     renderTodos();
     initializeLiff();
   </script>
+  
+<div style="margin:16px 0;padding:12px;border:1px solid #ccc;border-radius:8px;">
+  <button id="workerTestButton" type="button">測試 Worker 連線</button>
+  <pre id="workerTestResult" style="white-space:pre-wrap;"></pre>
+</div>
+
+<script>
+(() => {
+  const button = document.getElementById("workerTestButton");
+  const output = document.getElementById("workerTestResult");
+  if (!button || !output) return;
+
+  button.addEventListener("click", async () => {
+    button.disabled = true;
+    output.textContent = "測試中…";
+
+    try {
+      const response = await fetch(
+        "https://kujo-todo-api.hting07092.workers.dev/api/verify",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idToken: "invalid-test-token" })
+        }
+      );
+
+      output.textContent =
+        `HTTP ${response.status}\n` + await response.text();
+    } catch (error) {
+      output.textContent = "請求失敗：" + error.message;
+    } finally {
+      button.disabled = false;
+    }
+  });
+})();
+</script>
+
 </body>
 </html>
