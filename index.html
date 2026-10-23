@@ -6,8 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f5f6f8">
   <title>九條先生｜待辦清單</title>
+
   <style>
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
     body {
       margin: 0;
@@ -23,20 +26,35 @@
       padding: 24px 20px;
       background: #fff;
       border-radius: 18px;
-      box-shadow: 0 4px 18px rgba(0,0,0,.06);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
     }
 
-    h1 { margin: 0 0 8px; font-size: 24px; }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 24px;
+    }
 
-    .subtitle, .note {
+    .subtitle,
+    .note {
       color: #707783;
       line-height: 1.7;
     }
 
-    .subtitle { font-size: 14px; margin-bottom: 22px; }
-    .count { margin-bottom: 12px; font-size: 14px; color: #46566f; }
+    .subtitle {
+      font-size: 14px;
+      margin-bottom: 22px;
+    }
 
-    .todo-list { display: grid; gap: 10px; }
+    .count {
+      margin-bottom: 12px;
+      font-size: 14px;
+      color: #46566f;
+    }
+
+    .todo-list {
+      display: grid;
+      gap: 10px;
+    }
 
     .todo-item {
       display: flex;
@@ -49,6 +67,11 @@
       cursor: pointer;
     }
 
+    .todo-item:has(input:checked) {
+      border-color: #496b9a;
+      background: #f3f7fc;
+    }
+
     .todo-item input {
       width: 20px;
       height: 20px;
@@ -57,9 +80,13 @@
       accent-color: #496b9a;
     }
 
-    .todo-content { overflow-wrap: anywhere; }
+    .todo-content {
+      overflow-wrap: anywhere;
+    }
 
-    .actions { margin-top: 22px; }
+    .actions {
+      margin-top: 22px;
+    }
 
     button {
       width: 100%;
@@ -86,18 +113,35 @@
       overflow-wrap: anywhere;
     }
 
-    .note { margin-top: 16px; font-size: 12px; }
+    .note {
+      margin-top: 16px;
+      font-size: 12px;
+    }
+
+    .tag {
+      display: inline-block;
+      margin-bottom: 14px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: #eef2f7;
+      color: #46566f;
+      font-size: 12px;
+    }
   </style>
 </head>
+
 <body>
   <main class="container">
-    <h1>九條先生｜待辦清單</h1>
+    <div class="tag">九條先生的工作助理</div>
+
+    <h1>待辦清單</h1>
 
     <div class="subtitle">
       請勾選要完成的項目，確認後一次送出。
     </div>
 
     <div class="count" id="count">已選 0 項</div>
+
     <div class="todo-list" id="todoList"></div>
 
     <div class="actions">
@@ -107,33 +151,109 @@
     </div>
 
     <div class="status" id="status" role="status" aria-live="polite">
-      目前為介面預覽，尚未連接真實待辦資料。
+      正在初始化 LIFF……
     </div>
 
     <div class="note">
-      示意模式：勾選狀態只存在目前頁面，不會修改試算表。
+      目前為測試模式。勾選與確認只會顯示預覽結果，
+      不會修改真實待辦資料。
     </div>
   </main>
 
+  <!-- LINE LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
   <script>
-    // 僅供介面測試使用，尚未連接任何後端。
+    /*
+     * 第一步：填入自己的 LIFF ID。
+     *
+     * 請從 LINE Developers 後台複製 LIFF ID，
+     * 直接貼在下方引號內。
+     *
+     * 不要填入 LIFF URL，也不要填入 Apps Script URL。
+     */
+    const LIFF_ID = "2012167437-rTi7982A";
+
+    /*
+     * 測試用待辦資料。
+     * 此版本尚未連線 Google 試算表。
+     */
     const demoTodos = [
-      { id: "demo-1", content: "整理研究稽核資料" },
-      { id: "demo-2", content: "確認會議紀錄" },
-      { id: "demo-3", content: "追蹤待處理事項" }
+      {
+        id: "demo-1",
+        content: "整理研究稽核資料"
+      },
+      {
+        id: "demo-2",
+        content: "確認會議紀錄"
+      },
+      {
+        id: "demo-3",
+        content: "追蹤待處理事項"
+      }
     ];
 
     const selectedIds = new Set();
+
     const todoList = document.getElementById("todoList");
     const count = document.getElementById("count");
     const confirmButton = document.getElementById("confirmButton");
     const status = document.getElementById("status");
 
+    /*
+     * 第二步：初始化 LIFF 並檢查登入狀態。
+     *
+     * 此處不讀取 LINE 使用者 ID，
+     * 不傳送登入憑證，也不呼叫任何待辦後端。
+     */
+    async function initializeLiff() {
+      try {
+        if (
+          !LIFF_ID ||
+          LIFF_ID === "請在此填入自己的 LIFF ID"
+        ) {
+          status.textContent =
+            "尚未設定 LIFF ID。請先編輯程式碼，填入自己的 LIFF ID。";
+          return;
+        }
+
+        await liff.init({
+          liffId: LIFF_ID
+        });
+
+        if (liff.isLoggedIn()) {
+          status.textContent =
+            "LIFF 初始化成功，已登入。\n" +
+            "目前仍為測試模式，尚未連接真實待辦資料。";
+        } else {
+          status.textContent =
+            "LIFF 已初始化，但目前尚未登入。\n" +
+            "請透過 LIFF 網址開啟，並依 LINE 畫面完成登入。";
+        }
+      } catch (error) {
+        console.error(
+          "LIFF 初始化失敗：",
+          error && error.message ? error.message : "未知錯誤"
+        );
+
+        status.textContent =
+          "LIFF 初始化失敗。\n" +
+          "請確認 LIFF ID、LIFF Endpoint URL 與登入設定是否正確。";
+      }
+    }
+
+    /*
+     * 第三步：更新勾選數量與按鈕狀態。
+     */
     function updateSelection() {
       count.textContent = `已選 ${selectedIds.size} 項`;
+
       confirmButton.disabled = selectedIds.size === 0;
     }
 
+    /*
+     * 第四步：顯示待辦清單。
+     */
     function renderTodos() {
       todoList.replaceChildren();
 
@@ -144,12 +264,18 @@
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
         checkbox.value = todo.id;
+        checkbox.setAttribute(
+          "aria-label",
+          `選取待辦：${todo.content}`
+        );
+
         checkbox.addEventListener("change", () => {
           if (checkbox.checked) {
             selectedIds.add(todo.id);
           } else {
             selectedIds.delete(todo.id);
           }
+
           updateSelection();
         });
 
@@ -164,18 +290,32 @@
       updateSelection();
     }
 
+    /*
+     * 第五步：一次確認所有已勾選項目。
+     *
+     * 目前只產生預覽訊息，不會完成真實待辦。
+     */
     confirmButton.addEventListener("click", () => {
       const selectedContents = demoTodos
         .filter(todo => selectedIds.has(todo.id))
         .map(todo => "・" + todo.content);
 
+      if (selectedContents.length === 0) {
+        status.textContent = "請先選取至少一項待辦。";
+        return;
+      }
+
       status.textContent =
-        `介面預覽：已選取 ${selectedIds.size} 項。\n` +
+        `介面預覽：已選取 ${selectedContents.length} 項。\n\n` +
         selectedContents.join("\n") +
-        "\n\n尚未送出，也不會修改任何待辦資料。";
+        "\n\n目前尚未送出至後端，也不會修改 Google 試算表。";
     });
 
+    /*
+     * 第六步：顯示測試資料並啟動 LIFF。
+     */
     renderTodos();
+    initializeLiff();
   </script>
 </body>
 </html>
