@@ -1,0 +1,181 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f6f8">
+  <title>九條先生｜待辦清單</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 24px 16px;
+      font-family: Arial, "Noto Sans TC", sans-serif;
+      background: #f5f6f8;
+      color: #242833;
+    }
+
+    .container {
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 24px 20px;
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 4px 18px rgba(0,0,0,.06);
+    }
+
+    h1 { margin: 0 0 8px; font-size: 24px; }
+
+    .subtitle, .note {
+      color: #707783;
+      line-height: 1.7;
+    }
+
+    .subtitle { font-size: 14px; margin-bottom: 22px; }
+    .count { margin-bottom: 12px; font-size: 14px; color: #46566f; }
+
+    .todo-list { display: grid; gap: 10px; }
+
+    .todo-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px;
+      border: 1px solid #e4e7ec;
+      border-radius: 12px;
+      line-height: 1.6;
+      cursor: pointer;
+    }
+
+    .todo-item input {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      margin-top: 2px;
+      accent-color: #496b9a;
+    }
+
+    .todo-content { overflow-wrap: anywhere; }
+
+    .actions { margin-top: 22px; }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      border: 0;
+      border-radius: 12px;
+      background: #496b9a;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      background: #c6ccd5;
+      cursor: not-allowed;
+    }
+
+    .status {
+      margin-top: 16px;
+      font-size: 14px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .note { margin-top: 16px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1>九條先生｜待辦清單</h1>
+
+    <div class="subtitle">
+      請勾選要完成的項目，確認後一次送出。
+    </div>
+
+    <div class="count" id="count">已選 0 項</div>
+    <div class="todo-list" id="todoList"></div>
+
+    <div class="actions">
+      <button id="confirmButton" type="button" disabled>
+        確認完成
+      </button>
+    </div>
+
+    <div class="status" id="status" role="status" aria-live="polite">
+      目前為介面預覽，尚未連接真實待辦資料。
+    </div>
+
+    <div class="note">
+      示意模式：勾選狀態只存在目前頁面，不會修改試算表。
+    </div>
+  </main>
+
+  <script>
+    // 僅供介面測試使用，尚未連接任何後端。
+    const demoTodos = [
+      { id: "demo-1", content: "整理研究稽核資料" },
+      { id: "demo-2", content: "確認會議紀錄" },
+      { id: "demo-3", content: "追蹤待處理事項" }
+    ];
+
+    const selectedIds = new Set();
+    const todoList = document.getElementById("todoList");
+    const count = document.getElementById("count");
+    const confirmButton = document.getElementById("confirmButton");
+    const status = document.getElementById("status");
+
+    function updateSelection() {
+      count.textContent = `已選 ${selectedIds.size} 項`;
+      confirmButton.disabled = selectedIds.size === 0;
+    }
+
+    function renderTodos() {
+      todoList.replaceChildren();
+
+      demoTodos.forEach(todo => {
+        const label = document.createElement("label");
+        label.className = "todo-item";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = todo.id;
+        checkbox.addEventListener("change", () => {
+          if (checkbox.checked) {
+            selectedIds.add(todo.id);
+          } else {
+            selectedIds.delete(todo.id);
+          }
+          updateSelection();
+        });
+
+        const text = document.createElement("span");
+        text.className = "todo-content";
+        text.textContent = todo.content;
+
+        label.append(checkbox, text);
+        todoList.appendChild(label);
+      });
+
+      updateSelection();
+    }
+
+    confirmButton.addEventListener("click", () => {
+      const selectedContents = demoTodos
+        .filter(todo => selectedIds.has(todo.id))
+        .map(todo => "・" + todo.content);
+
+      status.textContent =
+        `介面預覽：已選取 ${selectedIds.size} 項。\n` +
+        selectedContents.join("\n") +
+        "\n\n尚未送出，也不會修改任何待辦資料。";
+    });
+
+    renderTodos();
+  </script>
+</body>
+</html>
