@@ -211,10 +211,10 @@ async function initializeLiff() {
   try {
     if (
       !LIFF_ID ||
-      LIFF_ID === "請在此填入自己的 LIFF ID"
+      LIFF_ID === "2012167437-rTi7982A"
     ) {
       status.textContent =
-        "尚未設定 LIFF ID，請先填入自己的 LIFF ID。";
+        "2012167437-rTi7982A";
       return;
     }
 
@@ -222,12 +222,44 @@ async function initializeLiff() {
       liffId: LIFF_ID
     });
 
-    if (liff.isLoggedIn()) {
-      status.textContent =
-        "LIFF 初始化成功，已登入。\n" +
-        "目前仍為測試模式，尚未連接真實待辦資料。";
-      return;
+if (liff.isLoggedIn()) {
+  status.textContent = "正在驗證 LINE 登入狀態…";
+
+  const idToken = liff.getIDToken();
+
+  if (!idToken) {
+    status.textContent =
+      "無法取得 LINE ID Token。\n" +
+      "請確認 LIFF 已啟用 openid 權限，並重新登入。";
+    return;
+  }
+
+  const response = await fetch(
+    "https://kujo-todo-api.hting07092.workers.dev/api/verify",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ idToken })
     }
+  );
+
+  const result = await response.json();
+
+  if (!response.ok || result.authenticated !== true) {
+    status.textContent =
+      "LINE 登入驗證失敗（HTTP " +
+      response.status +
+      "）。\n請重新登入，或檢查 Worker 設定。";
+    return;
+  }
+
+  status.textContent =
+    "LINE 登入驗證成功！\n" +
+    "目前仍為測試模式，尚未連接真實待辦資料。";
+  return;
+}
 
     if (!liff.isInClient()) {
       status.textContent =
