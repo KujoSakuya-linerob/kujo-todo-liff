@@ -206,42 +206,58 @@
      * 此處不讀取 LINE 使用者 ID，
      * 不傳送登入憑證，也不呼叫任何待辦後端。
      */
-    async function initializeLiff() {
-      try {
-        if (
-          !LIFF_ID ||
-          LIFF_ID === "請在此填入自己的 LIFF ID"
-        ) {
-          status.textContent =
-            "尚未設定 LIFF ID。請先編輯程式碼，填入自己的 LIFF ID。";
-          return;
-        }
 
-          await liff.init({
-            liffId: LIFF_ID,
-            withLoginOnExternalBrowser: true
-          });
-
-        if (liff.isLoggedIn()) {
-          status.textContent =
-            "LIFF 初始化成功，已登入。\n" +
-            "目前仍為測試模式，尚未連接真實待辦資料。";
-        } else {
-          status.textContent =
-            "LIFF 已初始化，但目前尚未登入。\n" +
-            "請透過 LIFF 網址開啟，並依 LINE 畫面完成登入。";
-        }
-      } catch (error) {
-        console.error(
-          "LIFF 初始化失敗：",
-          error && error.message ? error.message : "未知錯誤"
-        );
-
-        status.textContent =
-          "LIFF 初始化失敗。\n" +
-          "請確認 LIFF ID、LIFF Endpoint URL 與登入設定是否正確。";
-      }
+async function initializeLiff() {
+  try {
+    if (
+      !LIFF_ID ||
+      LIFF_ID === "請在此填入自己的 LIFF ID"
+    ) {
+      status.textContent =
+        "尚未設定 LIFF ID，請先填入自己的 LIFF ID。";
+      return;
     }
+
+    await liff.init({
+      liffId: LIFF_ID
+    });
+
+    if (liff.isLoggedIn()) {
+      status.textContent =
+        "LIFF 初始化成功，已登入。\n" +
+        "目前仍為測試模式，尚未連接真實待辦資料。";
+      return;
+    }
+
+    if (!liff.isInClient()) {
+      status.textContent =
+        "目前尚未登入 LINE，請點擊下方按鈕登入。";
+
+      const loginButton = document.createElement("button");
+      loginButton.type = "button";
+      loginButton.textContent = "使用 LINE 登入";
+      loginButton.style.marginTop = "12px";
+
+      loginButton.addEventListener("click", () => {
+        liff.login({
+          redirectUri: window.location.href
+        });
+      });
+
+      status.appendChild(loginButton);
+      return;
+    }
+
+    status.textContent =
+      "請從 LINE 聊天室內開啟此 LIFF 頁面。";
+  } catch (error) {
+    console.error("LIFF 初始化失敗：", error);
+
+    status.textContent =
+      "LIFF 初始化失敗。\n" +
+      "請檢查 LIFF ID、Endpoint URL 與 LINE Login 設定。";
+  }
+}
 
     /*
      * 第三步：更新勾選數量與按鈕狀態。
